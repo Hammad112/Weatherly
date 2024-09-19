@@ -2,19 +2,14 @@ import streamlit as st
 import numpy as np
 from tensorflow.keras.models import load_model
 from PIL import Image, UnidentifiedImageError
-import os
 import base64
+from io import BytesIO
 
 # Load the trained model
 model = load_model('weather_classification_model.h5')
 
 # Define the class labels (adjust according to your classes)
 class_labels = ['Cloudy', 'Rainy', 'Shine', 'Sunrise', 'Foggy']
-
-# Create a directory to save uploaded images if it doesn't exist
-save_dir = "uploaded_images"
-if not os.path.exists(save_dir):
-    os.makedirs(save_dir)
 
 # Function to preprocess the image for model prediction
 def preprocess_image(image):
@@ -28,11 +23,9 @@ def preprocess_image(image):
 
 # Function to display image in center using base64 encoding
 def image_to_base64(image):
-    buffered = image.convert("RGB")
-    with open("temp.jpg", "wb") as f:
-        buffered.save(f, format="JPEG")
-    with open("temp.jpg", "rb") as f:
-        img_data = f.read()
+    buffered = BytesIO()
+    image.save(buffered, format="JPEG")
+    img_data = buffered.getvalue()
     encoded = base64.b64encode(img_data).decode("utf-8")
     return f"data:image/jpeg;base64,{encoded}"
 
@@ -47,10 +40,8 @@ if uploaded_file is not None:
         # Open the image
         image = Image.open(uploaded_file)
 
-        # Resize the image to 214x150 and save it locally
+        # Resize the image to 214x150
         resized_image = image.resize((214, 150))
-        image_path = os.path.join(save_dir, uploaded_file.name)
-        resized_image.save(image_path)
 
         # Get base64-encoded string of the resized image
         image_base64 = image_to_base64(resized_image)
@@ -92,11 +83,8 @@ if uploaded_file is not None:
             </div>
             """, unsafe_allow_html=True
         )
-        
-        st.write(f"Image saved at: {image_path}")
     
     except UnidentifiedImageError:
         st.error("The uploaded file is not a valid image. Please upload a proper image file.")
 else:
     st.write("Please upload an image to classify.")
-
